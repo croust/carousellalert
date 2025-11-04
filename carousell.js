@@ -2,7 +2,7 @@ require("dotenv").config();
 const puppeteer = require("puppeteer");
 
 let prevListings = [];
-const resellers = process.env.RESELLERS.split(", ");
+const resellers = (process.env.RESELLERS || "").split(", ").filter(r => r.length > 0);
 let context;
 
 const CronJob = require("cron").CronJob;
@@ -38,6 +38,15 @@ async function loadPage(){
   await page.close();
 
   let listings = [];
+
+  // 🛑 ADD THIS CRITICAL CHECK HERE (addresses the TypeError)
+  if (!data || !data.SearchListing || !data.SearchListing.listingCards) {
+      console.error("Scraping failed: Carousell likely blocked the request or returned malformed data.");
+      // Optional: Log the received data to debug what Carousell sent back
+      // console.error("Received data:", data); 
+      return; // Stop the function gracefully
+  }
+  // 🛑 END CRITICAL CHECK
 
   data.SearchListing.listingCards.forEach((element) => {
     const name = element.belowFold[0].stringContent;
