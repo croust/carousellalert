@@ -1,5 +1,7 @@
 require("dotenv").config();
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-extra"); // Use puppeteer-extra
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
 
 let prevListings = [];
 const resellers = (process.env.RESELLERS || "").split(", ").filter(r => r.length > 0);
@@ -18,7 +20,7 @@ async function loadPage(){
     return; 
   }
   // --- END ADDED CHECK ---
-  var link = "https://sg.carousell.com/search/" + encodeURIComponent(process.env.ITEM)
+  var link = "https://sg.carousell.com/search/" + process.env.ITEM
   var page = await context.newPage();
   await page.setUserAgent(
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -31,7 +33,12 @@ async function loadPage(){
     if (req.resourceType() == "document") req.continue();
     else req.abort();
   });
-  await page.goto(link, { waitUntil: "load", timeout: 0 });
+  await page.goto(link, { waitUntil: "networkidle0", timeout: 0 });
+  const minWait = 2000; // 2 seconds
+  const maxWait = 5000; // 5 seconds
+  const waitTime = Math.floor(Math.random() * (maxWait - minWait + 1)) + minWait;
+  console.log(`Waiting for ${waitTime}ms to simulate human browsing...`);
+  await page.waitForTimeout(waitTime);
   var data = await page.evaluate(function () {
     return window.initialState;
   });
@@ -163,11 +170,11 @@ function createListingsStr(listings) {
 
 
 async function createBrowser(cb) {
-  // Use a necessary list of args for running Puppeteer in a Docker/Linux environment
+  // Now using the patched puppeteer-extra object
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: true, // or 'new' for modern headless mode
     args: [
-      "--no-sandbox", 
+      "--no-sandbox",
       "--disable-setuid-sandbox",
       "--incognito",
       // These are crucial for cloud environments
