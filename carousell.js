@@ -12,7 +12,13 @@ const job = new CronJob({
 });
 
 async function loadPage(){
-  var link = "https://sg.carousell.com/search/" + encodeURIComponent(process.env.ITEM) + "?sort_by=time_created%2Cdescending"
+  // --- ADD THIS CHECK HERE ---
+  if (!context) {
+    console.error("Browser context is not initialized. Skipping loadPage execution.");
+    return; 
+  }
+  // --- END ADDED CHECK ---
+  var link = "https://sg.carousell.com/search/" + encodeURIComponent(process.env.ITEM)
   var page = await context.newPage();
   await page.setUserAgent(
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3419.0 Safari/537.36"
@@ -148,12 +154,21 @@ function createListingsStr(listings) {
 
 
 async function createBrowser(cb) {
+  // Use a necessary list of args for running Puppeteer in a Docker/Linux environment
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--no-sandbox", "--incognito"],
+    args: [
+      "--no-sandbox", 
+      "--disable-setuid-sandbox",
+      "--incognito",
+      // These are crucial for cloud environments
+      "--disable-dev-shm-usage", 
+      "--disable-accelerated-mjpeg-decode",
+      "--disable-gpu",
+    ],
   });
   context = await browser.createIncognitoBrowserContext();
-  cb()
+  cb();
 }
 
 createBrowser(loadPage);
