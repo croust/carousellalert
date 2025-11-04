@@ -9,8 +9,8 @@ let context;
 
 const CronJob = require("cron").CronJob;
 const job = new CronJob({
-  cronTime: process.env.SLEEP_TIME,
-  onTick: loadPage,
+  cronTime: String(process.env.SLEEP_TIME), // Explicitly convert to string
+  onTick: loadPage,
 });
 
 async function loadPage(){
